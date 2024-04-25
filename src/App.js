@@ -5,25 +5,25 @@ import {
   Route
 } from "react-router-dom"
 
-import Index from "./components/user/Index"
 import Register from './components/user/Register'
 import Login from "./components/user/Login";
 import Navbar from "./components/Navbar";
 import Home from "./components/chat/Home";
-
+import Chatpage from "./components/chat/Chatpage";
 function App() {
   return (
     <>
     <Router>
       <Navbar/>
       <Routes>
-        <Route exact path ='/' element={<Index/>} />
+        <Route exact path ='/' element={<Login/>} />
         <Route exact path ='/register' element={<Register/>} />
         <Route exact path ='/login' element={<Login/>} />
       </Routes>
 
       <Routes>
         <Route exact path="/home" element={<Home/>}></Route>
+        <Route exact path="/chat" element={<Chatpage/>}></Route>
       </Routes>
     </Router>
     </>
