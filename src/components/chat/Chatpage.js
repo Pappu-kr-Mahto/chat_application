@@ -1,49 +1,90 @@
 import React, { useState } from 'react';
-import { InputAdornment, TextField, Box, Button } from '@mui/material';
+import { InputAdornment, TextField, Box, Button ,Typography} from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import getUserIdUtil from '../utils/getUserIdUtil';
 
-
-let url = `ws://localhost:8000/ws/chat/`
-let socket = new WebSocket(url);
+const leftChatMessage = {
+    display:'inline-block',
+    border:'1px solid black',
+    borderRadius:'1rem 1rem 1rem 0',
+    padding:'0.5rem 1rem' ,
+    margin:'0.5rem 0',
+    backgroundColor:'whitesmoke',
+}
+const rightChatMessage = {
+    display:'inline-block',
+    border:'1px solid black',
+    borderRadius:'1rem 1rem 0 1rem',
+    padding:'0.5rem 1rem',
+    margin:'0.5rem 0',
+    backgroundColor:'#4fa4ee;',
+    color:'white',
+}
 const Chatpage = (props) => {
-
-    const [messages, setMessages] = useState([]);
-
+    const userId = getUserIdUtil.getUserId()
+    const { room , userChats, setUserChats, socket } = props;
     const [currMsg, setCurrMsg] = useState('');
 
+    const scrollToBottom = ()=>{
+        setTimeout(() => {
+            const scrollObj = document.getElementById('chatend');
+            scrollObj.scrollIntoView({ behavior: 'smooth'});
+        }, 200);
+    }
+
     socket.onmessage = (event) => {
-        console.log("on message works")
         const data = JSON.parse(event.data);
-        const response = [...messages, data['message']]
-        setMessages(response)
         console.log(data)
-        console.log(messages)
+        if(data.roomId === room.roomId){
+            const response = [...userChats,data]
+            setUserChats(response)
+            scrollToBottom() 
+        }   
     }
 
     const sendMessage = (e) => {
+        e.preventDefault();
         socket.send(JSON.stringify({
+            sender : getUserIdUtil.getUserId(),
+            roomId : room.roomId,
             message: currMsg
         }))
         setCurrMsg("");
-        e.preventDefault();
     }
 
-    
     return (
         <>
-            <Box sx={{ height: 'inherit', position: 'relative' }}>
-                chat page  {props.user.name}
-                {props.user.roomId}
+            <Box sx={{ height: 'inherit', display: 'flex',flexDirection:'column' }}>
+
+                <Box sx={{borderBottom:'1px solid gray', color:'black',backgroundColor:'whitesmoke',padding:'0.5rem'}}>
+                    <Typography> chat page  {room.name}  {room.roomId} {userId}</Typography>
+                </Box>
+
+                <Box sx={{padding:'0 1rem', flexGrow:2,maxHeight:'85%', overflowY:'scroll', scrollbarWidth: 'none'}}>
                 {
-                    messages && messages.map((msg) => {
+                    userChats && userChats.map((msg) => {
                         return (
-                            <div>
-                                {msg}
-                            </div>
-                        )
+                            <Box >
+                                {
+                                    userId === msg.sender_id 
+                                    ?
+                                    <Box sx={{textAlign:'right'}} >
+                                        <Box sx={rightChatMessage}>{msg.message}</Box>
+                                    </Box>
+                                    :
+                                    <Box >
+                                        <Box sx={leftChatMessage}>{msg.message}</Box> 
+                                    </Box> 
+                                }
+                              </Box>  
+                        )   
                     })
+
                 }
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', flexDirection: 'column', position: 'absolute', bottom: '0', width: "100%" }}>
+                <div id = 'chatend'></div>
+                </Box>
+
+                <Box sx={{ alignContent:'flex-end'}}>
                     <form action="" >
                         <TextField
                             fullWidth

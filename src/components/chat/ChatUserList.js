@@ -6,10 +6,11 @@ const ChatUserList = (props) => {
     const {user , selectChatUser } = props
   return (
     <>
-        <Box  sx={{margin:'15px',padding:'5px', backgroundColor:'whitesmoke'}} onClick={()=>selectChatUser(user)} >
+        <Box  sx={{margin:'15px',padding:'5px', backgroundColor:'#fdfdfd'}} onClick={()=>selectChatUser(user)} >
             <img src={Chat} alt='profile' style={{borderRadius:'50%', height:'3rem',width:'3rem'}} />
             <span style={{ verticalAlign: "top" }}>
                 {user.name}
+                {user.email}
             </span>
         </Box>   
     </>

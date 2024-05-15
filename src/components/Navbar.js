@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Box, Container } from '@mui/material'
-// import { AppBar, Toolbar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
     Link,
@@ -12,17 +11,18 @@ const Navbar = () => {
     const [loginUser, setLoginUser] = useState(false);
 
     useEffect(() => {
-        if(localStorage.getItem('access')){
+        if(window.localStorage.getItem('access')){
             setLoginUser(true)
+            // navigate('/home');
         }
         else{
             navigate('/login');
         }
-    },[localStorage.getItem('access')]);
+    },[window.localStorage.getItem('access')]);
 
     const handleLogout = ()=>{
-        localStorage.removeItem('access')
-        localStorage.removeItem('user')
+        window.localStorage.removeItem('access')
+        window.localStorage.removeItem('user')
         setLoginUser(false)
         navigate('/login');
     }

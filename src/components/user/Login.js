@@ -36,8 +36,8 @@ const Login = () => {
                 console.log(result)
                 if(result['access']){
                     setFormData({email: '',password: ''})
-                    localStorage.setItem('access',result['access'])
-                    localStorage.setItem('user',result['user'])
+                    window.localStorage.setItem('access',result['access'])
+                    window.localStorage.setItem('user',result['user'])
                     navigate('/home')
                 }
                 else{

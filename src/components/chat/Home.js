@@ -1,5 +1,7 @@
-import { Typography, Box, Button, boxClasses } from '@mui/material';
+import { Typography, Box, Button, Container } from '@mui/material';
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 import Chatpage from './Chatpage';
 import ChatUserList from './ChatUserList';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -8,9 +10,11 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 import Modal from '@mui/material/Modal';
 import Checkbox from '@mui/material/Checkbox';
-
+import IconButton from '@mui/material/IconButton';
+import getUserIdUtil from '../utils/getUserIdUtil';
 import Chat from '../assets/images/chat.png'
 import CloseIcon from '@mui/icons-material/Close';
+import Tooltip from '@mui/material/Tooltip';
 
 const style = {
   overflowY: 'auto',
@@ -27,21 +31,20 @@ const style = {
 
 };
 
-const selectUserStyle = { 
+const selectUserStyle = {
   border: '2px solid green',
 }
 
+let url = `ws://localhost:8000/ws/chat/${getUserIdUtil.getUserId()}`
+let socket = new WebSocket(url);
+
 const Home = () => {
+
   const initialUser = ['Pappu', 'Praveen', 'kana', 'Pappu', 'Praveen']
-  const initialActiveChat = initialUser[0]
-
   const [users, setUsers] = useState(initialUser);
-  const [activeChatUser, setActiveChatUser] = useState(initialActiveChat);
+  const [userChats, setUserChats] = useState('');
+  const [activeChatUser, setActiveChatUser] = useState('');
   const [chatUsers, setChatUsers] = useState([]);
-
-  const switchChatUser = (user, event) => {
-    setActiveChatUser(user)
-  }
 
   const getAllChatUsers = async () => {
     const URL = `${process.env.REACT_APP_API_URL}/api/getAllChatUsers/`
@@ -58,8 +61,9 @@ const Home = () => {
     const result = await response.json();
     console.log(result)
     setChatUsers(result.data)
-    
+
   }
+
   const getAllUsers = async () => {
     const URL = `${process.env.REACT_APP_API_URL}/api/getAllUsers/`
     const token = `Bearer ${localStorage.getItem('access')}`
@@ -75,20 +79,41 @@ const Home = () => {
     const result = await response.json();
     console.log(result)
     setUsers(result.data)
-    
+
   }
-  
+
   useEffect(() => {
     getAllChatUsers()
     getAllUsers()
   }, []);
 
-  const getOnlineChatUsers = () => {
+  // Get all the chats of active chat User
+  const getUserChat = async (roomId) => {
+    const URL = `${process.env.REACT_APP_API_URL}/api/chatmessages/${roomId}`
+    const token = `Bearer ${localStorage.getItem('access')}`
 
+    const response = await fetch(URL, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token,
+      }
+    });
+    const result = await response.json();
+    console.log(result);
+    setUserChats(result.data)
   }
 
+  // !important: changes the active chat user and also the URL
   const selectChatUser = (user) => {
     setActiveChatUser(user)
+    getUserChat(user.roomId)
+    console.log(user)
+
+    const url = new URL(window.location)
+    url.searchParams.set('room', user.roomId)
+    window.history.pushState(null, '', url.toString());
+
   }
 
   const [open, setOpen] = useState(false);
@@ -99,32 +124,33 @@ const Home = () => {
   const [disabledAdd, setDisabledAdd] = useState(true)
 
   const handleCheckedChange = (id) => {
-    if (checked[id]){
-      setChecked({...checked, [id] : false})
+    if (checked[id]) {
+      setChecked({ ...checked, [id]: false })
     }
-    else{
-      setChecked({...checked, [id] : true})
+    else {
+      setChecked({ ...checked, [id]: true })
     }
   };
+
   useEffect(() => {
-    let flag=true;
-    for (const key in checked){
-      if(checked[key] === true){
-        flag=false;
+    let flag = true;
+    for (const key in checked) {
+      if (checked[key] === true) {
+        flag = false;
         break;
       }
     }
-    if(flag)setDisabledAdd(true)
+    if (flag) setDisabledAdd(true)
     else setDisabledAdd(false)
   }, [checked]);
 
-  const addChatUser = async ()=>{
+  const addChatUser = async () => {
     console.log(checked)
     const URL = `${process.env.REACT_APP_API_URL}/api/createroom/`
     const token = `Bearer ${localStorage.getItem('access')}`
-    const data=[]
-    for(const key in checked){
-      if(checked[key])data.push(key);
+    const data = []
+    for (const key in checked) {
+      if (checked[key]) data.push(key);
     }
     const response = await fetch(URL, {
       method: "POST",
@@ -132,40 +158,63 @@ const Home = () => {
         'Content-Type': 'application/json',
         'Authorization': token,
       },
-      body:JSON.stringify(data)
+      body: JSON.stringify(data)
     });
     const result = await response.json();
     console.log(result);
   }
   return (
     <>
-      <Box sx={{ margin: "10rem", padding: "0", mt: "1rem", border: "1px solid grey" }}>
-        <Box sx={{ width: "25%", backgroundColor: '#89e2c4', maxHeight: "80vh", display: "inline-block", }}>
-          <Box sx={{ maxHeight: '65vh', minHeight: '65vh', overflowY: 'scroll', scrollbarWidth: 'none' }}>
-            {
-              chatUsers ? chatUsers.map((user) => {
-                return (
-                  <ChatUserList user={user} selectChatUser={selectChatUser} />
-                )
-              })
-                :
-                <Box>
-                  Select users to Chat
-                </Box>
+      <Container>
+        <Box sx={{ mt: "1rem", border: "1px solid grey", display: 'flex', }}>
+          <Box sx={{ width: "25%", backgroundColor: '#93bdc8', borderRight: '1px solid gray', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ backgroundColor: 'whitesmoke', display: 'flex' }}>
+              <Typography sx={{ flexGrow: 2, alignSelf: 'center', paddingLeft: '1rem' }}> User Profile</Typography>
+              <Box>
+                <Tooltip title="Add User" arrow>
+                  <IconButton onClick={handleOpen} aria-label="add">
+                    <PersonAddIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Create Group" arrow>
+                  <IconButton onClick={handleOpen} aria-label="add">
+                    <GroupAddIcon />
+                  </IconButton>
+                </Tooltip>
 
+              </Box>
+            </Box>
+            <Box sx={{ flexGrow: 2, overflowY: 'scroll', scrollbarWidth: 'none' }}>
+              {
+                chatUsers ? chatUsers.map((user) => {
+                  return (
+                    <ChatUserList user={user} selectChatUser={selectChatUser} />
+                  )
+                })
+                  :
+                  <Box>
+                    Add New Member to chat
+                  </Box>
+
+              }
+            </Box>
+            <Box>
+
+              <Button fullWidth startIcon={<LogoutIcon />} color='primary'  variant="contained" > Logout </Button>
+            </Box>
+          </Box>
+          <Box sx={{ width: "75%", height: "80vh", }}>
+            {
+              activeChatUser ?
+                <Chatpage room={activeChatUser} setUserChats={setUserChats} userChats={userChats} socket={socket} />
+                :
+                <Box sx={{ position: 'relative', height: 'inherit' }}>
+                  <Typography variant="h5" sx={{ position: 'absolute', top: '45%', left: '30%' }}>Select User to Chat</Typography>
+                </Box>
             }
           </Box>
-          <Box>
-            <Button fullWidth startIcon={<PersonAddIcon />} variant="contained" onClick={handleOpen} > Add New </Button>
-            <Button fullWidth startIcon={<GroupAddIcon />} color='success' variant="contained" onClick={handleOpen} > Create Group</Button>
-            <Button fullWidth startIcon={<LogoutIcon />} color='error' variant="contained" > Logout </Button>
-          </Box>
         </Box>
-        <Box sx={{ width: "75%", height: "80vh", backgroundColor: '', display: "inline-block", verticalAlign: "top" }}>
-          <Chatpage user={activeChatUser} />
-        </Box>
-      </Box>
-
+      </Container>
       <Modal
         open={open}
         onClose={handleClose}
@@ -181,14 +230,14 @@ const Home = () => {
             {
               users.map((user) => {
                 return (
-                  <Box sx={{ margin: '15px', backgroundColor: 'whitesmoke',boxSizing:'border-box' }} >
-                      <Box sx={checked[user.id]? selectUserStyle : {border: '2px solid white'}}>
+                  <Box sx={{ margin: '15px', backgroundColor: 'whitesmoke', boxSizing: 'border-box' }} >
+                    <Box sx={checked[user.id] ? selectUserStyle : { border: '2px solid white' }}>
                       <img src={Chat} alt='profile' style={{ borderRadius: '50%', height: '3.5rem', width: '3.5rem' }} />
                       <Box sx={{ display: 'inline-block', verticalAlign: "top" }}>
                         {user.first_name}{user.last_name} <br />
                         <small>{user.email} </small>
                       </Box>
-                      <Checkbox sx={{ float: 'right'} } checked={checked[user.id]} onChange={()=>handleCheckedChange(user.id)} inputProps={{ 'aria-label': 'controlled' }} />
+                      <Checkbox sx={{ float: 'right' }} checked={checked[user.id]} onChange={() => handleCheckedChange(user.id)} inputProps={{ 'aria-label': 'controlled' }} />
                     </Box>
                   </Box>
                 )

@@ -23,7 +23,6 @@ function App() {
 
       <Routes>
         <Route exact path="/home" element={<Home/>}></Route>
-        <Route exact path="/chat" element={<Chatpage/>}></Route>
       </Routes>
     </Router>
     </>
